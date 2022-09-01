@@ -20,19 +20,24 @@ namespace VillagerSpawnerMod
     public class VillagerSpawnerMod : MelonMod
     {
         public Action action;
-        bool isFinishedCreateUI = false;
+        bool finished = false;
         GameManager gameManager = null;
         GameObject gameManagerObject = null;
         public override void OnApplicationStart()
         {
             MelonLogger.Msg("VillagerSpawnerMod Started");
         }
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            finished = false;
+            MelonLogger.Msg("Re-creating Add Villager Button");
+        }
         public override void OnUpdate()
         {
             if (Input.GetKeyDown(KeyCode.V))
             {
                
-                var gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
+                gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
 
                 if (gameManager != null)
                 {
@@ -43,27 +48,43 @@ namespace VillagerSpawnerMod
                 }
             }
 
-            var gameManagerObject = GameObject.Find("GameManager");
+            gameManagerObject = GameObject.Find("GameManager");
             if (gameManagerObject == null) return;
 
-            var getUIButtonResume = GameObject.Find("Button_Resume");
-            if (getUIButtonResume != null)
+            if (finished) return;
+
+            MelonLogger.Msg("Creating UI");
+            var getUIpausWindow = GameObject.FindObjectsOfType<UIPauseWindow>();
+            foreach(UIPauseWindow uipausWindow in getUIpausWindow)
             {
-                var getTownProgression = GameObject.Find("TownCenterProgression");
-                if (getTownProgression != null)
+                var getResumButton = uipausWindow.gameObject.transform.FindChild("Pivot").FindChild("Main Panel").FindChild("Button_Resume");
+                if(getResumButton != null)
                 {
-                    if (getTownProgression.transform.FindChild("AddVillagerButton") != null) return;
-                    MelonLogger.Msg("Create UI Add Villager");
-                    createUI(getTownProgression.gameObject, getUIButtonResume);
+                    var getTownCenterUIlist = GameObject.FindObjectsOfTypeAll(Il2CppType.From(typeof(UITownCenterOverview)));
+                    var idx = 1;
+                    foreach(var townCenterUI in getTownCenterUIlist)
+                    {
+                        var getTownCenterUI =  townCenterUI.TryCast<UITownCenterOverview>().gameObject.transform.FindChild("TownProgression").FindChild("TownCenterProgression").gameObject;
+                        if (getTownCenterUI != null)
+                        {
+                            var createdButton = createUI(getTownCenterUI.gameObject, getResumButton.gameObject, idx);
+                            createdButton.GetComponent<RectTransform>().anchoredPosition = new Vector2(860 ,- 170);
+
+                            createdButton.transform.SetParent(getTownCenterUI.transform, false);
+
+                            createdButton.SetActiveRecursively(true);
+                            idx++;
+                        }
+                    }
                 }
             }
-            
+            finished = true;
         }
-        void createUI(GameObject obj, GameObject button)
+        GameObject createUI(GameObject obj, GameObject button, int idx)
         {
             var createNewButton = GameObject.Instantiate(button);
             createNewButton.transform.DetachChildren();
-            createNewButton.name = "AddVillagerButton";
+            createNewButton.name = "AddVillagerButton"+idx;
 
             //MelonLogger.Msg("AddVillagerButton");
 
@@ -119,32 +140,26 @@ namespace VillagerSpawnerMod
 
             var createNewButtonRectTransofrm = createNewButton.GetComponent<RectTransform>();
             createNewButtonRectTransofrm.sizeDelta = new Vector2(80, 35);
-
-            createNewButton.transform.SetParent(obj.transform, false);
-            createNewButton.SetActiveRecursively(true);
-            createNewButton.transform.localPosition = new Vector3(400, -70, 0);
-            
+            return createNewButton;
         }
         void addPopulation()
         {
-            gameManagerObject = GameObject.Find("GameManager");
-            if (gameManagerObject != null)
+            var addPopulationGameManagerObject = GameObject.Find("GameManager");
+            if (addPopulationGameManagerObject != null)
             {
-                gameManager = gameManagerObject.GetComponent<GameManager>();
+                var addPopulationGameManager = addPopulationGameManagerObject.GetComponent<InputManager>();
                 {
-                    if(gameManager != null)
+                    if(addPopulationGameManager != null)
                     {
-                        var townCenter = gameManager.inputManager.selectedObject.GetComponent<TownCenter>();
+                        var townCenter = addPopulationGameManager.selectedObject.GetComponent<TownCenter>();
                         if (townCenter != null)
                         {
                             var townCenterLoc = townCenter.transform.localPosition;
-
-                            gameManager.villagerPopulationManager.SpawnVillagerImmigration(townCenterLoc, true);
+                            var villagerPopulationManager = addPopulationGameManagerObject.GetComponent<VillagerPopulationManager>();
+                            villagerPopulationManager.SpawnVillagerImmigration(townCenterLoc, true);
                         }
                     }
                 }
-                
-
             }
         }
     }
