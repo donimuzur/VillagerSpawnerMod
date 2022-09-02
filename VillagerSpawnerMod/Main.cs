@@ -30,24 +30,9 @@ namespace VillagerSpawnerMod
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             finished = false;
-            MelonLogger.Msg("Re-creating Add Villager Button");
         }
         public override void OnUpdate()
         {
-            if (Input.GetKeyDown(KeyCode.V))
-            {
-               
-                gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
-
-                if (gameManager != null)
-                {
-                    Vector3 mousePosition = Input.mousePosition;
-                    Vector3 terrainWorldPointUnderScreenPoint = gameManager.terrainManager.GetTerrainWorldPointUnderScreenPoint(mousePosition);
-
-                    gameManager.villagerPopulationManager.SpawnVillagerImmigration(terrainWorldPointUnderScreenPoint, true);
-                }
-            }
-
             gameManagerObject = GameObject.Find("GameManager");
             if (gameManagerObject == null) return;
 
@@ -86,35 +71,18 @@ namespace VillagerSpawnerMod
             createNewButton.transform.DetachChildren();
             createNewButton.name = "AddVillagerButton"+idx;
 
-            //MelonLogger.Msg("AddVillagerButton");
-
-            //var toDestroy1 = createNewButton.GetComponent<RectTransform>();
-            //GameObject.Destroy(toDestroy1);
-
             var toDestroy2 = createNewButton.GetComponent<LayoutElement>();
             GameObject.Destroy(toDestroy2);
-
-            //var toDestroy3 = createNewButton.GetComponent<UIPauseWindow>();
-            //GameObject.Destroy(toDestroy3);
-
-            //var toDestroy4 = createNewButton.GetComponent<Button>();
-            //GameObject.Destroy(toDestroy4);
-
-            //createNewButton.AddComponent<Button>();
 
             var buttonActioncreateNewButton = createNewButton.GetComponent<Button>();
             buttonActioncreateNewButton.onClick.AddListener(delegate
             {
                 addPopulation();
-            }
-                );
-
-            //createNewButton.AddComponent<RectTransform>();
+            });
 
             var createNewButtonlayoutElement = createNewButton.AddComponent<LayoutElement>();
             createNewButtonlayoutElement.ignoreLayout = true;
 
-            //MelonLogger.Msg("AddVillagerButtonIcon1");
             GameObject gameObject3 = new GameObject("AddVillagerButtonIcon1");
             var component31 = gameObject3.AddComponent<RectTransform>();
 
@@ -123,7 +91,6 @@ namespace VillagerSpawnerMod
             component32.preserveAspect = true;
             gameObject3.transform.SetParent(createNewButton.transform, false);
 
-            MelonLogger.Msg("AddVillagerButtonIcon2");
             GameObject gameObject2 = new GameObject("AddVillagerButtonIcon2");
             var component21 = gameObject2.AddComponent<RectTransform>();
 
