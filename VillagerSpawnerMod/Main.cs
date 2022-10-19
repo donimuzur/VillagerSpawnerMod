@@ -4,6 +4,7 @@ using UnhollowerRuntimeLib;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VillagerSpawnerMod.UI;
 
 namespace VillagerSpawnerMod
 {
@@ -13,16 +14,16 @@ namespace VillagerSpawnerMod
         public const string Description = "Mod to spawn villager"; 
         public const string Author = "donimuzur"; // Author of the Mod.  (MUST BE SET)
         public const string Company = "donimuzur@gmail.com"; // Company that made the Mod.  (Set as null if none)
-        public const string Version = "2.2.2"; // Version of the Mod.  (MUST BE SET)
+        public const string Version = "2.2.3"; // Version of the Mod.  (MUST BE SET)
         public const string DownloadLink = null; // Download Link for the Mod.  (Set as null if none)
     }
 
     public class VillagerSpawnerMod : MelonMod
     {
-        public Action action;
         bool finished = false;
-        GameManager gameManager = null;
-        GameObject gameManagerObject = null;
+        public GameManager gameManager = null;
+        public InputManager inputManager= null;
+        public GameObject selectedBuilding = null;
         public override void OnApplicationStart()
         {
             MelonLogger.Msg("VillagerSpawnerMod Started");
@@ -33,97 +34,74 @@ namespace VillagerSpawnerMod
         }
         public override void OnUpdate()
         {
-            gameManagerObject = GameObject.Find("GameManager");
-            if (gameManagerObject == null) return;
-
             if (finished) return;
+            if (SceneManager.GetActiveScene().name != "Frontier") return;
 
-            MelonLogger.Msg("Creating UI");
-            var getUIpausWindow = GameObject.FindObjectsOfType<UIPauseWindow>();
-            foreach(UIPauseWindow uipausWindow in getUIpausWindow)
+            var gameManagerObj = GameObject.Find("GameManager");
+            if(gameManagerObj != null )
             {
-                var getResumButton = uipausWindow.gameObject.transform.FindChild("Pivot").FindChild("Main Panel").FindChild("Button_Resume");
-                if(getResumButton != null)
+                inputManager = gameManagerObj.GetComponent<InputManager>();
+                selectedBuilding = inputManager.selectedObject;
+                if (selectedBuilding != null && selectedBuilding.tag == "TownCenter" && !finished)
                 {
-                    var getTownCenterUIlist = GameObject.FindObjectsOfTypeAll(Il2CppType.From(typeof(UITownCenterOverview)));
-                    var idx = 1;
-                    foreach(var townCenterUI in getTownCenterUIlist)
+                    var getUIpausWindowList =  Resources.FindObjectsOfTypeAll(Il2CppType.From(typeof(UIPauseWindow)));
+
+                    if(getUIpausWindowList != null && getUIpausWindowList.Count >0)
                     {
-                        var getTownCenterUI =  townCenterUI.TryCast<UITownCenterOverview>().gameObject.transform.FindChild("TownProgression").FindChild("TownCenterProgression").gameObject;
-                        if (getTownCenterUI != null)
+                        var getUIpausWindow = getUIpausWindowList[0].TryCast<UIPauseWindow>();
+                        var getResumeButton = getUIpausWindow.gameObject.transform.FindChild("Pivot").FindChild("Main Panel").FindChild("Button_Resume");
+                        if (getResumeButton != null )
                         {
-                            var createdButton = createUI(getTownCenterUI.gameObject, getResumButton.gameObject, idx);
-                            createdButton.GetComponent<RectTransform>().anchoredPosition = new Vector2(860 ,- 170);
+                            var getUITownCenterOverview = GameObject.FindObjectOfType<UITownCenterOverview>();
+                            if(getUITownCenterOverview != null)
+                            {
+                                Sprite btnSprite = getResumeButton.GetComponent<Image>().sprite;
+                                GameObject uiButton = UIControls.CreateButton(new UIControls.Resources{standard = btnSprite});
+                                uiButton.name = "AddVillagerButton";
+                                GameObject gameObject3 = new GameObject("AddVillagerButtonIcon1");
+                                var component31 = gameObject3.AddComponent<RectTransform>();
 
-                            createdButton.transform.SetParent(getTownCenterUI.transform, false);
+                                var component32 = gameObject3.AddComponent<Image>();
+                                component32.sprite = GlobalAssets.uiAssetMap.villagerIcon;
+                                component32.preserveAspect = true;
+                                gameObject3.transform.SetParent(uiButton.transform, false);
+                                
+                                var buttonActionuiButton = uiButton.GetComponent<Button>();
+                                buttonActionuiButton.onClick.AddListener(delegate ()
+                                {
+                                    var townCenterLoc = GameObject.FindObjectOfType<TownCenter>();
+                                    var villagerPopulationManager = gameManagerObj.GetComponent<VillagerPopulationManager>();
+                                    villagerPopulationManager.SpawnVillagerImmigration(townCenterLoc.transform.localPosition, true);
 
-                            createdButton.SetActiveRecursively(true);
-                            idx++;
-                        }
-                    }
-                }
-            }
-            finished = true;
-        }
-        GameObject createUI(GameObject obj, GameObject button, int idx)
-        {
-            var createNewButton = GameObject.Instantiate(button);
-            createNewButton.transform.DetachChildren();
-            createNewButton.name = "AddVillagerButton"+idx;
+                                });
+                                
+                                GameObject gameObject2 = new GameObject("AddVillagerButtonIcon2");
+                                var component21 = gameObject2.AddComponent<RectTransform>();
 
-            var toDestroy2 = createNewButton.GetComponent<LayoutElement>();
-            GameObject.Destroy(toDestroy2);
+                                var component22 = gameObject2.AddComponent<Image>();
+                                component22.sprite = GlobalAssets.uiAssetMap.chevronPositive;
+                                component22.preserveAspect = true;
+                                gameObject2.transform.SetParent(uiButton.transform, false);
+                                
+                                var component3 = uiButton.AddComponent<HorizontalLayoutGroup>();
+                                component3.padding.top = 10;
+                                component3.padding.bottom = 5;
+                                component3.padding.left = 20;
+                                component3.padding.right = 20;
 
-            var buttonActioncreateNewButton = createNewButton.GetComponent<Button>();
-            buttonActioncreateNewButton.onClick.AddListener(delegate
-            {
-                addPopulation();
-            });
+                                var uiButtonlayoutElement = uiButton.AddComponent<LayoutElement>();
+                                uiButtonlayoutElement.ignoreLayout = true;
+                                
+                                var uiButtonContentSizeFitter = uiButton.AddComponent<ContentSizeFitter>();
+                                uiButtonlayoutElement.ignoreLayout = true;
 
-            var createNewButtonlayoutElement = createNewButton.AddComponent<LayoutElement>();
-            createNewButtonlayoutElement.ignoreLayout = true;
-
-            GameObject gameObject3 = new GameObject("AddVillagerButtonIcon1");
-            var component31 = gameObject3.AddComponent<RectTransform>();
-
-            var component32 = gameObject3.AddComponent<Image>();
-            component32.sprite = GlobalAssets.uiAssetMap.villagerIcon;
-            component32.preserveAspect = true;
-            gameObject3.transform.SetParent(createNewButton.transform, false);
-
-            GameObject gameObject2 = new GameObject("AddVillagerButtonIcon2");
-            var component21 = gameObject2.AddComponent<RectTransform>();
-
-            var component22 = gameObject2.AddComponent<Image>();
-            component22.sprite = GlobalAssets.uiAssetMap.chevronPositive;
-            component22.preserveAspect = true;
-            gameObject2.transform.SetParent(createNewButton.transform, false);
-
-            var component3 = createNewButton.AddComponent<HorizontalLayoutGroup>();
-            component3.padding.top = 10;
-            component3.padding.bottom = 5;
-            component3.padding.left = 20;
-            component3.padding.right = 20;
-
-            var createNewButtonRectTransofrm = createNewButton.GetComponent<RectTransform>();
-            createNewButtonRectTransofrm.sizeDelta = new Vector2(80, 35);
-            return createNewButton;
-        }
-        void addPopulation()
-        {
-            var addPopulationGameManagerObject = GameObject.Find("GameManager");
-            if (addPopulationGameManagerObject != null)
-            {
-                var addPopulationGameManager = addPopulationGameManagerObject.GetComponent<InputManager>();
-                {
-                    if(addPopulationGameManager != null)
-                    {
-                        var townCenter = addPopulationGameManager.selectedObject.GetComponent<TownCenter>();
-                        if (townCenter != null)
-                        {
-                            var townCenterLoc = townCenter.transform.localPosition;
-                            var villagerPopulationManager = addPopulationGameManagerObject.GetComponent<VillagerPopulationManager>();
-                            villagerPopulationManager.SpawnVillagerImmigration(townCenterLoc, true);
+                                uiButton.transform.SetParent(getUITownCenterOverview.gameObject.transform.FindChild("TownProgression").FindChild("TownCenterProgression").gameObject.transform, false);
+                                var uiButtonRectTransofrm = uiButton.GetComponent<RectTransform>();
+                                uiButtonRectTransofrm.sizeDelta = new Vector2(80, 35);
+                                uiButtonRectTransofrm.localPosition = new Vector3(400, -71, 0);
+                                finished = true;
+                            }
+                         
                         }
                     }
                 }
